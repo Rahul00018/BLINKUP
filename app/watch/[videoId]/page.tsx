@@ -42,6 +42,8 @@ import {
 import Link from "next/link";
 import { Skeleton } from "../../../components/ui/Skeleton";
 
+const EMPTY_ARRAY: any[] = [];
+
 export default function WatchPage() {
   const { videoId } = useParams() as { videoId: string };
   const router = useRouter();
@@ -51,7 +53,7 @@ export default function WatchPage() {
   const { toast } = useToast();
   const supabase = createClient();
   
-  const { theaterMode, setTheaterMode, nextVideo, setQueue } = usePlayerStore();
+  const { theaterMode, setTheaterMode, nextVideo, setQueue, queue } = usePlayerStore();
   const { isSubscribed, subscribe, unsubscribe, subscriptions } = useSubscriptions();
 
   const [saved, setSaved] = useState(false);
@@ -139,7 +141,7 @@ export default function WatchPage() {
   const isSubbed = video ? isSubscribed(video.channelId) : false;
 
   // 1.2. Fetch playlist items if in playlist mode
-  const { data: playlistVideos = [], isLoading: loadingPlaylistVideos } = useQuery<YouTubeVideo[]>({
+  const { data: playlistVideos = EMPTY_ARRAY, isLoading: loadingPlaylistVideos } = useQuery<YouTubeVideo[]>({
     queryKey: ["playlistWatchVideos", listId],
     queryFn: () => getPlaylistVideos(listId!),
     enabled: !!listId,
@@ -160,7 +162,7 @@ export default function WatchPage() {
   });
 
   // 2. Fetch all uploads from subscribed channels for related recommendations
-  const { data: suggestionsFeed = [], isLoading: loadingSuggestions } = useQuery<YouTubeVideo[]>({
+  const { data: suggestionsFeed = EMPTY_ARRAY, isLoading: loadingSuggestions } = useQuery<YouTubeVideo[]>({
     queryKey: ["watchSuggestionsFeed", subscriptions.map((s: any) => s.id)],
     queryFn: async () => {
       if (subscriptions.length === 0) return [];
@@ -182,7 +184,7 @@ export default function WatchPage() {
 
   // Filter recommendations based on pill chips (only used when NOT in playlist mode)
   const relatedVideos = useMemo(() => {
-    if (listId) return [];
+    if (listId) return EMPTY_ARRAY;
     let list = suggestionsFeed.filter((v) => v.id !== videoId);
     if (suggestionFilter === "channel" && video) {
       list = list.filter((v) => v.channelId === video.channelId);
@@ -194,19 +196,21 @@ export default function WatchPage() {
 
   // Update playback queue dynamically
   useEffect(() => {
-    if (listId) {
-      if (playlistVideos.length > 0) {
-        const currentIndex = playlistVideos.findIndex((v) => v.id === videoId);
-        if (currentIndex !== -1) {
-          setQueue(playlistVideos.slice(currentIndex + 1));
-        } else {
-          setQueue(playlistVideos);
-        }
-      }
-    } else if (relatedVideos.length > 0) {
-      setQueue(relatedVideos);
+    const targetQueue = listId
+      ? (playlistVideos.length > 0
+        ? (playlistVideos.findIndex((v) => v.id === videoId) !== -1
+          ? playlistVideos.slice(playlistVideos.findIndex((v) => v.id === videoId) + 1)
+          : playlistVideos)
+        : EMPTY_ARRAY)
+      : relatedVideos;
+
+    const currentQueueIds = queue.map((v) => v.id).join(",");
+    const targetQueueIds = targetQueue.map((v) => v.id).join(",");
+
+    if (targetQueueIds !== currentQueueIds && targetQueue.length > 0) {
+      setQueue(targetQueue);
     }
-  }, [listId, playlistVideos, relatedVideos, videoId, setQueue]);
+  }, [listId, playlistVideos, relatedVideos, videoId, queue, setQueue]);
 
   // Check if saved
   useEffect(() => {
