@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useYouTubePlayer } from "../../hooks/useYouTubePlayer";
 import { useToast } from "../../hooks/useToast";
 import { usePlayerStore } from "../../store/playerStore";
+import { useUIStore } from "../../store/uiStore";
 import { formatDuration } from "../../lib/utils";
 import {
   Play,
@@ -20,6 +21,16 @@ import {
   RotateCcw,
   Mic,
 } from "lucide-react";
+
+const QUALITY_OPTIONS = [
+  { label: "Auto", value: "default" },
+  { label: "1080p HD", value: "hd1080" },
+  { label: "720p HD", value: "hd720" },
+  { label: "480p", value: "large" },
+  { label: "360p", value: "medium" },
+  { label: "240p", value: "small" },
+  { label: "144p", value: "tiny" },
+];
 
 interface CustomPlayerProps {
   videoId: string;
@@ -47,17 +58,26 @@ export default function CustomPlayer({
   const originalParentRef = useRef<HTMLElement | null>(null);
 
   const { theaterMode, setTheaterMode } = usePlayerStore();
-  const player = useYouTubePlayer(videoId, "youtube-iframe-player");
+  const { themeMode } = useUIStore();
   const [isPiPActive, setIsPiPActive] = useState(false);
+  const player = useYouTubePlayer(videoId, "youtube-iframe-player", isPiPActive);
 
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState("default");
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPosition, setHoverPosition] = useState<number>(0);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+
+  // Synchronize playback quality from player
+  useEffect(() => {
+    if (player.playbackQuality) {
+      setSelectedQuality(player.playbackQuality);
+    }
+  }, [player.playbackQuality]);
 
   // Voice Command control state
   const [isVoiceActive, setIsVoiceActive] = useState(false);
@@ -473,7 +493,7 @@ export default function CustomPlayer({
       >
       {/* 1. Underlying YouTube Player IFrame */}
       <div className="absolute inset-0 w-full h-full pointer-events-none">
-        <div id="youtube-iframe-player" className="w-full h-full scale-[1.01]" />
+        <div key={isPiPActive ? "pip" : "normal"} id="youtube-iframe-player" className="w-full h-full scale-[1.01]" />
       </div>
 
       {/* 2. Backdrop click handler for Play/Pause */}
@@ -504,7 +524,9 @@ export default function CustomPlayer({
       {!showControls && (
         <div className="absolute bottom-0 left-0 w-full h-[3px] bg-white/20 z-20 pointer-events-none">
           <div
-            className="h-full bg-red-600 transition-all duration-100"
+            className={`h-full transition-all duration-100 ${
+              themeMode === "light" ? "bg-white" : "bg-red-600"
+            }`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -537,11 +559,15 @@ export default function CustomPlayer({
         >
           {/* Progress fill */}
           <div
-            className="h-full bg-red-600 rounded-full relative"
+            className={`h-full rounded-full relative transition-colors ${
+              themeMode === "light" ? "bg-white" : "bg-red-600"
+            }`}
             style={{ width: `${progressPercent}%` }}
           >
             {/* Scrubber Knob Handle */}
-            <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-600 border border-white scale-0 group-hover/progress:scale-100 transition-transform shadow-glow shrink-0" />
+            <div className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border scale-0 group-hover/progress:scale-100 transition-transform shadow-glow shrink-0 ${
+              themeMode === "light" ? "bg-white border-black" : "bg-red-600 border-white"
+            }`} />
           </div>
 
           {/* Chapter Markers */}
@@ -671,36 +697,39 @@ export default function CustomPlayer({
                   setShowQualityMenu(!showQualityMenu);
                   setShowSpeedMenu(false);
                 }}
-                className="text-white hover:text-red-500 transition-colors cursor-pointer"
+                className="text-xs font-bold hover:text-red-500 transition-colors cursor-pointer px-2 py-0.5 rounded bg-white/10 text-white flex items-center gap-1"
+                title="Select Quality"
               >
-                <Settings size={18} />
+                <Settings size={12} />
+                <span>
+                  {QUALITY_OPTIONS.find((opt) => opt.value === selectedQuality)?.label.replace(" HD", "") || "Auto"}
+                </span>
               </button>
 
               {showQualityMenu && (
-                <div className="absolute bottom-10 right-0 bg-bg-elevated border border-border rounded-card shadow-glow overflow-hidden z-50 py-1 w-32">
+                <div className="absolute bottom-10 right-0 bg-bg-elevated border border-border rounded-card shadow-glow overflow-hidden z-50 py-1 w-36">
                   <div className="px-3 py-1.5 border-b border-border text-[10px] font-semibold uppercase tracking-widest text-text-secondary">
                     Quality
                   </div>
-                  {player.availableQualities.length > 0 ? (
-                    player.availableQualities.map((q) => (
-                      <button
-                        key={q}
-                        onClick={() => {
-                          player.setPlaybackQuality(q);
-                          setShowQualityMenu(false);
-                        }}
-                        className={`w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary text-white transition-colors ${
-                          player.playbackQuality === q ? "text-red-500 font-bold" : ""
-                        }`}
-                      >
-                        {q}
-                      </button>
-                    ))
-                  ) : (
-                    <button className="w-full text-left px-3 py-1.5 text-xs text-white/50 cursor-not-allowed">
-                      Auto (Default)
+                  {QUALITY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        player.setPlaybackQuality(opt.value);
+                        setSelectedQuality(opt.value);
+                        setShowQualityMenu(false);
+                        toast(`Quality set to ${opt.label}`, "success");
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary text-white transition-colors flex items-center justify-between ${
+                        selectedQuality === opt.value ? "text-red-500 font-bold" : ""
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {selectedQuality === opt.value && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                      )}
                     </button>
-                  )}
+                  ))}
                 </div>
               )}
             </div>

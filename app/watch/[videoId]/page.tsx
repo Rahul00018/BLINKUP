@@ -125,51 +125,50 @@ export default function WatchPage() {
     if (!video) return;
     setDeviceDownloading(true);
     setDeviceDownloadProgress(0);
-    toast("Connecting to secure media stream...", "info");
+    toast("Generating high quality download link...", "info");
 
     try {
       let progress = 0;
       const progressInterval = setInterval(() => {
-        progress += 5;
-        if (progress >= 95) {
+        progress += 8;
+        if (progress >= 90) {
           clearInterval(progressInterval);
         } else {
           setDeviceDownloadProgress(progress);
         }
-      }, 150);
+      }, 200);
 
-      const response = await fetch("/api/download?url=https://www.w3schools.com/html/mov_bbb.mp4");
-      if (!response.ok) throw new Error("Failed to fetch media stream");
+      const response = await fetch(`/api/download?videoId=${videoId}`);
+      if (!response.ok) throw new Error("Failed to resolve download stream");
 
-      const blob = await response.blob();
-      
+      const data = await response.json();
       clearInterval(progressInterval);
+
+      if (!data.downloadUrl) {
+        throw new Error(data.error || "Could not find a working download server. Please try again.");
+      }
+
       setDeviceDownloadProgress(100);
       
       setTimeout(() => {
-        const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = downloadUrl;
-        
-        const safeTitle = `${video.channelName}_${video.title}`.replace(/[^a-zA-Z0-9]/g, "_");
-        a.download = `[BLINKUP]_${safeTitle}.mp4`;
-        
+        a.href = data.downloadUrl;
+        a.target = "_blank";
         document.body.appendChild(a);
         a.click();
         a.remove();
-        window.URL.revokeObjectURL(downloadUrl);
 
         setDeviceDownloading(false);
         setDeviceDownloadProgress(0);
         setShowDownloadModal(false);
-        toast("Video downloaded to your device successfully!", "success");
+        toast("Download started! Check your browser downloads.", "success");
       }, 500);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Device download failed", error);
       setDeviceDownloading(false);
       setDeviceDownloadProgress(0);
-      toast("Device download failed. Please try again.", "error");
+      toast(error.message || "Device download failed. Please try again.", "error");
     }
   };
 

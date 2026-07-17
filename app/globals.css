@@ -38,7 +38,7 @@
   /* Custom Element Colors Light Defaults */
   --color-logo: #FF0000;
   --color-watch-now: #FF0000;
-  --color-video-title: #0F0F0F;
+  --color-video-title: #000000;
 }
 
 body {

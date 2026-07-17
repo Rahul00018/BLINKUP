@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-export function useYouTubePlayer(videoId: string, elementId: string) {
+export function useYouTubePlayer(videoId: string, elementId: string, isPiPActive: boolean = false) {
   const [player, setPlayer] = useState<any>(null);
   const [playerState, setPlayerState] = useState<number>(-1);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -21,6 +21,11 @@ export function useYouTubePlayer(videoId: string, elementId: string) {
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [isBuffering, setIsBuffering] = useState<boolean>(false);
 
+  const lastTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    lastTimeRef.current = currentTime;
+  }, [currentTime]);
 
   useEffect(() => {
     if (!window.YT) {
@@ -38,7 +43,23 @@ export function useYouTubePlayer(videoId: string, elementId: string) {
     const initPlayer = () => {
       if (!window.YT || !window.YT.Player || !isCurrent) return;
 
-      ytPlayer = new window.YT.Player(elementId, {
+      const originUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+      let element: any = elementId;
+      if (typeof window !== "undefined") {
+        const found = window.document.getElementById(elementId);
+        if (found) {
+          element = found;
+        } else if ((window as any).documentPictureInPicture?.window) {
+          const pipDoc = (window as any).documentPictureInPicture.window.document;
+          const pipFound = pipDoc.getElementById(elementId);
+          if (pipFound) {
+            element = pipFound;
+          }
+        }
+      }
+
+      ytPlayer = new window.YT.Player(element, {
         videoId,
         playerVars: {
           autoplay: 1,
@@ -49,6 +70,8 @@ export function useYouTubePlayer(videoId: string, elementId: string) {
           rel: 0,
           showinfo: 0,
           iv_load_policy: 3,
+          origin: originUrl,
+          widget_referrer: originUrl,
         },
         events: {
           onReady: (event: any) => {
@@ -63,6 +86,11 @@ export function useYouTubePlayer(videoId: string, elementId: string) {
             setIsMuted(p.isMuted() || false);
             setPlaybackRate(p.getPlaybackRate() || 1);
             setAvailableQualities(p.getAvailableQualityLevels() || []);
+
+            if (lastTimeRef.current > 0) {
+              p.seekTo(lastTimeRef.current, true);
+              p.playVideo();
+            }
           },
           onStateChange: (event: any) => {
             if (!isCurrent) return;
@@ -114,7 +142,7 @@ export function useYouTubePlayer(videoId: string, elementId: string) {
       }
       setPlayer(null);
     };
-  }, [videoId, elementId]);
+  }, [videoId, elementId, isPiPActive]);
 
   // Bulletproof time and duration polling loop
   useEffect(() => {

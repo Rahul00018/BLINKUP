@@ -415,7 +415,7 @@ export default function SettingsPage() {
                         className="w-8 h-8 rounded-full overflow-hidden border border-border cursor-pointer appearance-none bg-transparent"
                       />
                       <button
-                        onClick={() => setVideoTitleColor(themeMode === "light" ? "#0F0F14" : "#F0F0F8")}
+                        onClick={() => setVideoTitleColor(themeMode === "light" ? "#000000" : "#F1F1F1")}
                         className="text-[10px] font-semibold bg-bg-secondary hover:bg-bg-elevated border border-border rounded px-2.5 py-1 transition-colors cursor-pointer text-text-primary"
                       >
                         YouTube Default

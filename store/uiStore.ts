@@ -82,18 +82,18 @@ export const useUIStore = create<UIState>()(
             root.classList.add("light");
             // Automatically adapt default video title color for light theme readability
             set((state) => {
-              if (state.videoTitleColor === "#F0F0F8") {
-                root.style.setProperty("--color-video-title", "#0F0F14");
-                return { videoTitleColor: "#0F0F14" };
+              if (state.videoTitleColor === "#F0F0F8" || state.videoTitleColor === "#F1F1F1" || state.videoTitleColor === "#0F0F14" || !state.videoTitleColor) {
+                root.style.setProperty("--color-video-title", "#000000");
+                return { videoTitleColor: "#000000" };
               }
               return {};
             });
           } else {
             root.classList.remove("light");
             set((state) => {
-              if (state.videoTitleColor === "#0F0F14") {
-                root.style.setProperty("--color-video-title", "#F0F0F8");
-                return { videoTitleColor: "#F0F0F8" };
+              if (state.videoTitleColor === "#000000" || state.videoTitleColor === "#0F0F14" || state.videoTitleColor === "#F0F0F8" || !state.videoTitleColor) {
+                root.style.setProperty("--color-video-title", "#F1F1F1");
+                return { videoTitleColor: "#F1F1F1" };
               }
               return {};
             });

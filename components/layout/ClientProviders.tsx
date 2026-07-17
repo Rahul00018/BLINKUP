@@ -42,7 +42,7 @@ function ThemeSync() {
     // Apply specific element custom colors
     root.style.setProperty("--color-logo", logoColor || "#6C63FF");
     root.style.setProperty("--color-watch-now", watchNowColor || "#6C63FF");
-    root.style.setProperty("--color-video-title", videoTitleColor || (themeMode === "light" ? "#0F0F14" : "#F0F0F8"));
+    root.style.setProperty("--color-video-title", videoTitleColor || (themeMode === "light" ? "#000000" : "#F1F1F1"));
   }, [themeMode, accent, customAccentColor, logoColor, watchNowColor, videoTitleColor]);
 
   return null;
