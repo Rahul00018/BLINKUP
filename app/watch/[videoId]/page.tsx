@@ -38,6 +38,9 @@ import {
   Bell,
   Download,
   Play,
+  X,
+  MonitorPlay,
+  FileVideo,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -67,6 +70,7 @@ export default function WatchPage() {
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   // Check if current video is downloaded
   useEffect(() => {
@@ -82,30 +86,13 @@ export default function WatchPage() {
     }
   }, [videoId]);
 
-  const handleDownloadVideo = () => {
-    if (!video) return;
-
-    if (isDownloaded) {
-      const stored = localStorage.getItem("blinkup_downloads");
-      if (stored) {
-        try {
-          const list: YouTubeVideo[] = JSON.parse(stored);
-          const updated = list.filter((v) => v.id !== videoId);
-          localStorage.setItem("blinkup_downloads", JSON.stringify(updated));
-          setIsDownloaded(false);
-          toast("Video removed from offline downloads", "info");
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      return;
-    }
-
-    if (downloading) return;
+  const handleDownloadOffline = () => {
+    if (!video || downloading) return;
+    setShowDownloadModal(false);
 
     setDownloading(true);
     setDownloadProgress(0);
-    toast("Starting video download in high quality...", "info");
+    toast("Starting video download to offline library...", "info");
 
     const interval = setInterval(() => {
       setDownloadProgress((prev) => {
@@ -129,6 +116,33 @@ export default function WatchPage() {
         return prev + 10;
       });
     }, 400);
+  };
+
+  const handleDownloadFile = () => {
+    if (!videoId) return;
+    setShowDownloadModal(false);
+    toast("Redirecting to high quality video downloader...", "success");
+    window.open(`https://9xbuddy.in/process?url=https://www.youtube.com/watch?v=${videoId}`, "_blank");
+  };
+
+  const handleDownloadClick = () => {
+    if (isDownloaded) {
+      const stored = localStorage.getItem("blinkup_downloads");
+      if (stored) {
+        try {
+          const list: YouTubeVideo[] = JSON.parse(stored);
+          const updated = list.filter((v) => v.id !== videoId);
+          localStorage.setItem("blinkup_downloads", JSON.stringify(updated));
+          setIsDownloaded(false);
+          toast("Video removed from offline downloads", "info");
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return;
+    }
+
+    setShowDownloadModal(true);
   };
 
   // 1. Fetch video metadata
@@ -545,7 +559,7 @@ export default function WatchPage() {
 
                     {/* Download Pill */}
                     <button
-                      onClick={handleDownloadVideo}
+                      onClick={handleDownloadClick}
                       disabled={downloading}
                       className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold border transition-all cursor-pointer select-none ${
                         isDownloaded
@@ -787,6 +801,91 @@ export default function WatchPage() {
           </div>
         )}
       </div>
+
+      {/* Download Options Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-bg-primary border border-border rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-border/80 flex justify-between items-center bg-bg-elevated/40">
+              <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                <Download size={16} className="text-accent" />
+                <span>Download Video Options</span>
+              </h3>
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-5 flex flex-col gap-4">
+              <div className="flex gap-3 p-3 bg-bg-elevated/20 rounded-lg border border-border/50">
+                <img
+                  src={video?.thumbnailUrl}
+                  alt={video?.title}
+                  className="w-24 aspect-video object-cover rounded border border-border"
+                />
+                <div className="flex flex-col gap-1 min-w-0">
+                  <h4 className="text-xs font-semibold text-text-primary line-clamp-2 leading-tight">
+                    {video?.title}
+                  </h4>
+                  <span className="text-[10px] text-text-secondary">
+                    {video?.channelName}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 mt-1">
+                {/* Option 1: In-App Offline Save */}
+                <button
+                  onClick={handleDownloadOffline}
+                  className="flex items-center gap-3.5 p-3.5 bg-bg-elevated hover:bg-bg-elevated/80 border border-border rounded-lg text-left transition-all group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:scale-105 transition-transform">
+                    <MonitorPlay size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-xs font-bold text-text-primary">
+                      Save to Offline Library
+                    </h5>
+                    <p className="text-[10px] text-text-secondary mt-0.5">
+                      Saves inside BLINKUP library for local playback without internet.
+                    </p>
+                  </div>
+                </button>
+
+                {/* Option 2: Direct MP4 File Download */}
+                <button
+                  onClick={handleDownloadFile}
+                  className="flex items-center gap-3.5 p-3.5 bg-bg-elevated hover:bg-bg-elevated/80 border border-border rounded-lg text-left transition-all group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 group-hover:scale-105 transition-transform">
+                    <FileVideo size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="text-xs font-bold text-text-primary">
+                      Download MP4 File (Best Quality)
+                    </h5>
+                    <p className="text-[10px] text-text-secondary mt-0.5">
+                      Download 1080p/720p/MP3 file directly to your device storage.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-border bg-bg-elevated/20 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDownloadModal(false)}
+                className="px-4 py-2 border border-border hover:bg-bg-elevated rounded-full text-xs font-semibold text-text-primary transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
