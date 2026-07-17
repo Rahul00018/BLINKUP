@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0F0F0F;
+  --bg-secondary: #0F0F0F;
+  --bg-elevated: #272727;
+  --accent: #FF0000; /* YouTube Red */
+  --accent-glow: rgba(255, 0, 0, 0.15);
+  --accent-hover: #CC0000;
+  --text-primary: #F1F1F1;
+  --text-secondary: #AAAAAA;
+  --text-tertiary: #717171;
+  --red-live: #FF0000;
+  --border: #3F3F3F;
+  --border-hover: #4F4F4F;
+
+  /* Custom Element Colors */
+  --color-logo: #FF0000;
+  --color-watch-now: #FF0000;
+  --color-video-title: #F1F1F1;
+}
+
+:root.light {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #FFFFFF;
+  --bg-elevated: #F2F2F2;
+  --accent: #FF0000;
+  --accent-glow: rgba(255, 0, 0, 0.1);
+  --accent-hover: #CC0000;
+  --text-primary: #0F0F0F;
+  --text-secondary: #606060;
+  --text-tertiary: #909090;
+  --border: #CCCCCC;
+  --border-hover: #909090;
+
+  /* Custom Element Colors Light Defaults */
+  --color-logo: #FF0000;
+  --color-watch-now: #FF0000;
+  --color-video-title: #0F0F0F;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .glass-panel {
+    background: rgba(17, 17, 24, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease-in-out;
+  }
+
+  .glass-panel-hover:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 24px var(--accent-glow);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Animations */
+@keyframes pulse-live {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+.animate-live {
+  animation: pulse-live 2s infinite ease-in-out;
+}
+
