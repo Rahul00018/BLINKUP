@@ -10,6 +10,7 @@ import { useSubscriptions } from "../../hooks/useSubscriptions";
 import { getChannelVideos } from "../../lib/youtube";
 import { useUIStore } from "../../store/uiStore";
 import { timeAgo } from "../../lib/utils";
+import { useToast } from "../../hooks/useToast";
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -17,6 +18,7 @@ interface NavbarProps {
 
 export default function Navbar({ onMenuClick }: NavbarProps) {
   const { profile, signOut } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -28,8 +30,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
   const { subscriptions } = useSubscriptions();
   const { lastNotificationCheck, setLastNotificationCheck, toggleSidebar, themeMode } = useUIStore();
 
-  // Fetch latest videos from subscribed channels for notifications
-  const { data: notificationVideos, isLoading: loadingNotifs } = useQuery({
+  // Fetch latest videos from subscribed channels for notifications (limited to last 24h)
+  const { data: notificationVideos = [], isLoading: loadingNotifs } = useQuery({
     queryKey: ["notifications", subscriptions.map((s) => s.id)],
     queryFn: async () => {
       if (subscriptions.length === 0) return [];
@@ -46,22 +48,33 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       const results = await Promise.all(promises);
       const allVideos = results.flat();
       
-      return allVideos
+      // Filter: only show videos uploaded within the last 24 hours (single day)
+      const oneDayAgo = Date.now() - 24 * 3600 * 1000;
+      const singleDayVideos = allVideos.filter(
+        (v) => new Date(v.publishedAt).getTime() > oneDayAgo
+      );
+      
+      return singleDayVideos
         .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-        .slice(0, 10);
+        .slice(0, 15);
     },
     enabled: subscriptions.length > 0,
   });
 
-  // Check if any notifications are unread (newer than lastNotificationCheck)
-  const hasUnread = useMemo(() => {
-    if (!notificationVideos || notificationVideos.length === 0) return false;
-    if (!lastNotificationCheck) return true;
+  // Filter visible notifications: only show unread (newer than lastNotificationCheck)
+  const displayedNotifs = useMemo(() => {
+    if (!notificationVideos || notificationVideos.length === 0) return [];
+    if (!lastNotificationCheck) return notificationVideos;
     
-    return notificationVideos.some(
+    return notificationVideos.filter(
       (v) => new Date(v.publishedAt).getTime() > new Date(lastNotificationCheck).getTime()
     );
   }, [notificationVideos, lastNotificationCheck]);
+
+  // Check if any notifications are unread (newer than lastNotificationCheck)
+  const hasUnread = useMemo(() => {
+    return displayedNotifs.length > 0;
+  }, [displayedNotifs]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,7 +240,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             onClick={() => {
               setNotifDropdownOpen(!notifDropdownOpen);
               setDropdownOpen(false);
-              setLastNotificationCheck(new Date().toISOString());
             }}
             className="text-text-secondary hover:text-text-primary p-2 hover:bg-bg-elevated/50 rounded-badge transition-colors relative cursor-pointer"
           >
@@ -249,9 +261,17 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
                     Notifications
                   </span>
-                  <span className="text-[10px] text-text-tertiary">
-                    Recent Uploads
-                  </span>
+                  {displayedNotifs.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setLastNotificationCheck(new Date().toISOString());
+                        toast("Marked all as read", "success");
+                      }}
+                      className="text-[10px] text-accent hover:text-accent-hover font-semibold cursor-pointer select-none"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
 
                 <div className="divide-y divide-border/40">
@@ -259,8 +279,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                     <div className="p-4 text-center text-xs text-text-secondary animate-pulse">
                       Loading uploads...
                     </div>
-                  ) : notificationVideos && notificationVideos.length > 0 ? (
-                    notificationVideos.map((video) => (
+                  ) : displayedNotifs && displayedNotifs.length > 0 ? (
+                    displayedNotifs.map((video) => (
                       <div
                         key={video.id}
                         onClick={() => {

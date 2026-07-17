@@ -138,7 +138,7 @@ export default function WatchPage() {
         }
       }, 150);
 
-      const response = await fetch("https://www.w3schools.com/html/mov_bbb.mp4");
+      const response = await fetch("/api/download?url=https://www.w3schools.com/html/mov_bbb.mp4");
       if (!response.ok) throw new Error("Failed to fetch media stream");
 
       const blob = await response.blob();

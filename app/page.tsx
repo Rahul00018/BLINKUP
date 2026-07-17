@@ -20,10 +20,20 @@ type SortType = "latest" | "most_viewed" | "oldest";
 
 export default function HomeFeed() {
   const { user } = useAuth();
-  const { subscriptions, isLoading: loadingSubs } = useSubscriptions();
+  const { subscriptions, isLoading: loadingSubs, unsubscribe } = useSubscriptions();
   const [filter, setFilter] = useState<FilterType>("all");
   const [sort, setSort] = useState<SortType>("latest");
   const supabase = createClient();
+
+  const handleHomeUnsubscribe = async (channelId: string, channelName: string) => {
+    try {
+      await unsubscribe(channelId);
+      toast(`Unsubscribed from ${channelName}`, "success");
+      queryClient.invalidateQueries({ queryKey: ["homeFeed"] });
+    } catch (e) {
+      toast("Failed to unsubscribe", "error");
+    }
+  };
   const avatarMap = useMemo(() => {
     return new Map(subscriptions.map((s) => [s.id, s.thumbnail_url]));
   }, [subscriptions]);
@@ -398,12 +408,22 @@ export default function HomeFeed() {
                             </span>
                           </div>
                         </div>
-                        <Link
-                          href={`/channel/${channel.id}`}
-                          className="text-xs font-semibold text-accent hover:text-accent-hover transition-colors"
-                        >
-                          View All →
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/channel/${channel.id}`}
+                            className="text-xs font-semibold text-accent hover:text-accent-hover transition-colors"
+                          >
+                            View All →
+                          </Link>
+                          <span className="text-text-tertiary text-xs select-none">•</span>
+                          <button
+                            onClick={() => handleHomeUnsubscribe(channel.id, channel.name)}
+                            className="text-xs font-semibold text-text-secondary hover:text-red-500 transition-colors cursor-pointer select-none"
+                            title="Unsubscribe channel and remove from feed"
+                          >
+                            Unsubscribe
+                          </button>
+                        </div>
                       </div>
 
                       {/* Video scroll list */}
