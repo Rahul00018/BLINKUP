@@ -444,8 +444,7 @@ function getMockChannelsFallback(query: string): ChannelSearchResult[] {
       description: `Official channel of ${capitalizedQuery}. Subscribe for daily updates, experiments, and high-quality uploads!`,
       thumbnailUrl: dynamicThumbnail,
       subscriberCount: 5200000,
-    },
-    ...MOCK_CHANNELS.slice(0, 3),
+    }
   ];
 }
 
@@ -612,15 +611,18 @@ function getMockVideoSearchFallback(query: string): YouTubeVideo[] {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
+  const pseudoChannelId = "UC_DYN_" + stringToHex(capitalizedQuery);
+  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(capitalizedQuery)}&background=e50914&color=ffffff&size=120&bold=true&rounded=true`;
+
   return [
     {
       id: "kJQP7kiw5Fk",
-      title: `${capitalizedQuery} - Special Premiere`,
-      description: `Exclusive content covering ${capitalizedQuery}. Watch the full episode now!`,
+      title: `${capitalizedQuery} - Official Science Experiment Video`,
+      description: `In this video, we explore new stunts and science concepts from ${capitalizedQuery}.`,
       thumbnailUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/maxresdefault.jpg",
-      channelId: "UC8gtmd2pB3GjCqLg7GDFt1A",
-      channelName: "JEE Wallah",
-      channelAvatarUrl: "https://yt3.ggpht.com/i1rWscD0-D6dYyU-k2Z8VzWzO_b5G7Y6D4N-lB2N5P1S=s240-c-k-c0x00ffffff-no-rj",
+      channelId: pseudoChannelId,
+      channelName: capitalizedQuery,
+      channelAvatarUrl: avatar,
       viewCount: 450000,
       publishedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
       duration: 1200,
@@ -628,12 +630,12 @@ function getMockVideoSearchFallback(query: string): YouTubeVideo[] {
     },
     {
       id: "2Vv-BfVoq4g",
-      title: `${capitalizedQuery} - Live Experiments`,
-      description: `Live discussion and experiments on ${capitalizedQuery}.`,
+      title: `${capitalizedQuery} - Massive Stunt & Challenge!`,
+      description: `Watch as we attempt the biggest challenge yet. Special behind the scenes for ${capitalizedQuery} subscribers.`,
       thumbnailUrl: "https://i.ytimg.com/vi/2Vv-BfVoq4g/maxresdefault.jpg",
-      channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA",
-      channelName: "MrBeast",
-      channelAvatarUrl: "https://yt3.ggpht.com/ytc/AL5GRJX-s240-c-k-c0x00ffffff-no-rj",
+      channelId: pseudoChannelId,
+      channelName: capitalizedQuery,
+      channelAvatarUrl: avatar,
       viewCount: 89000000,
       publishedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
       duration: 1040,
@@ -641,12 +643,12 @@ function getMockVideoSearchFallback(query: string): YouTubeVideo[] {
     },
     {
       id: "dQw4w9WgXcQ",
-      title: `${capitalizedQuery} - Official Release`,
-      description: `Enjoy the official video for ${capitalizedQuery}.`,
+      title: `${capitalizedQuery} - Behind The Scenes & Bloopers`,
+      description: `Exclusive behind the scenes vlog and funny compilation from ${capitalizedQuery}.`,
       thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
-      channelId: "UCq-Fj5jknLsUf-MWSy4_brA",
-      channelName: "T-Series",
-      channelAvatarUrl: "https://yt3.ggpht.com/v_4wsb7V=s240-c-k-c0x00ffffff-no-rj",
+      channelId: pseudoChannelId,
+      channelName: capitalizedQuery,
+      channelAvatarUrl: avatar,
       viewCount: 12000000,
       publishedAt: new Date(Date.now() - 3600000 * 24 * 5).toISOString(),
       duration: 212,
