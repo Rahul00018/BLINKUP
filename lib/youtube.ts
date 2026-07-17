@@ -132,6 +132,7 @@ export async function getVideosByIds(videoIds: string[]): Promise<YouTubeVideo[]
         "",
       channelId: item.snippet.channelId,
       channelName: item.snippet.channelTitle,
+      channelAvatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.snippet.channelTitle)}&background=e50914&color=ffffff&size=120&bold=true&rounded=true`,
       viewCount: parseInt(item.statistics.viewCount || "0", 10),
       publishedAt: item.snippet.publishedAt,
       duration: parseDuration(item.contentDetails.duration),
@@ -394,6 +395,22 @@ const MOCK_CHANNELS: ChannelSearchResult[] = [
   },
 ];
 
+function stringToHex(str: string): string {
+  let hex = "";
+  for (let i = 0; i < str.length; i++) {
+    hex += str.charCodeAt(i).toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+function hexToString(hex: string): string {
+  let str = "";
+  for (let i = 0; i < hex.length; i += 2) {
+    str += String.fromCharCode(parseInt(hex.substring(i, i + 2), 16));
+  }
+  return str;
+}
+
 function getMockChannelsFallback(query: string): ChannelSearchResult[] {
   const cleanQuery = query.toLowerCase().trim();
   if (!cleanQuery) return MOCK_CHANNELS;
@@ -405,10 +422,54 @@ function getMockChannelsFallback(query: string): ChannelSearchResult[] {
       ch.handle.toLowerCase().includes(cleanQuery)
   );
 
-  return filtered.length > 0 ? filtered : MOCK_CHANNELS;
+  if (filtered.length > 0) {
+    return filtered;
+  }
+
+  // Dynamically generate a channel based on search query!
+  const capitalizedQuery = query
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  const cleanHandle = query.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const pseudoId = "UC_DYN_" + stringToHex(capitalizedQuery);
+  const dynamicThumbnail = `https://ui-avatars.com/api/?name=${encodeURIComponent(capitalizedQuery)}&background=e50914&color=ffffff&size=240&bold=true&rounded=true`;
+
+  return [
+    {
+      id: pseudoId,
+      name: capitalizedQuery,
+      handle: `@${cleanHandle || "channel"}`,
+      description: `Official channel of ${capitalizedQuery}. Subscribe for daily updates, experiments, and high-quality uploads!`,
+      thumbnailUrl: dynamicThumbnail,
+      subscriberCount: 5200000,
+    },
+    ...MOCK_CHANNELS.slice(0, 3),
+  ];
 }
 
 function getMockChannelByIdFallback(channelId: string): YouTubeChannel {
+  if (channelId.startsWith("UC_DYN_")) {
+    const hex = channelId.replace("UC_DYN_", "");
+    try {
+      const decodedName = hexToString(hex);
+      const cleanHandle = decodedName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return {
+        id: channelId,
+        name: decodedName,
+        handle: `@${cleanHandle || "channel"}`,
+        description: `Official channel of ${decodedName}. Subscribe for daily uploads and updates!`,
+        thumbnailUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(decodedName)}&background=e50914&color=ffffff&size=240&bold=true&rounded=true`,
+        bannerUrl: "",
+        subscriberCount: 5200000,
+        videoCount: 120,
+      };
+    } catch (e) {
+      console.error("Failed to decode dynamic channel name from hex", e);
+    }
+  }
+
   const found = MOCK_CHANNELS.find((c) => c.id === channelId);
   return {
     id: channelId,
@@ -430,6 +491,7 @@ const MOCK_VIDEOS: YouTubeVideo[] = [
     thumbnailUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/maxresdefault.jpg",
     channelId: "UC8gtmd2pB3GjCqLg7GDFt1A",
     channelName: "JEE Wallah",
+    channelAvatarUrl: "https://yt3.ggpht.com/i1rWscD0-D6dYyU-k2Z8VzWzO_b5G7Y6D4N-lB2N5P1S=s240-c-k-c0x00ffffff-no-rj",
     viewCount: 1250000,
     publishedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
     duration: 1320,
@@ -442,6 +504,7 @@ const MOCK_VIDEOS: YouTubeVideo[] = [
     thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
     channelId: "UCq-Fj5jknLsUf-MWSy4_brA",
     channelName: "T-Series",
+    channelAvatarUrl: "https://yt3.ggpht.com/v_4wsb7V=s240-c-k-c0x00ffffff-no-rj",
     viewCount: 1450000000,
     publishedAt: new Date(Date.now() - 3600000 * 24 * 365).toISOString(),
     duration: 212,
@@ -454,6 +517,7 @@ const MOCK_VIDEOS: YouTubeVideo[] = [
     thumbnailUrl: "https://i.ytimg.com/vi/2Vv-BfVoq4g/maxresdefault.jpg",
     channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA",
     channelName: "MrBeast",
+    channelAvatarUrl: "https://yt3.ggpht.com/ytc/AL5GRJX-s240-c-k-c0x00ffffff-no-rj",
     viewCount: 89000000,
     publishedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
     duration: 1040,
@@ -462,8 +526,62 @@ const MOCK_VIDEOS: YouTubeVideo[] = [
 ];
 
 function getMockVideosFallback(channelId: string): YouTubeVideo[] {
-  const filtered = MOCK_VIDEOS.filter((v) => v.channelId === channelId);
-  return filtered.length > 0 ? filtered : MOCK_VIDEOS;
+  let chName = "Creator Video";
+  if (channelId.startsWith("UC_DYN_")) {
+    const hex = channelId.replace("UC_DYN_", "");
+    try {
+      chName = hexToString(hex);
+    } catch (e) {
+      chName = "Creator Video";
+    }
+  } else {
+    const found = MOCK_CHANNELS.find((c) => c.id === channelId);
+    if (found) chName = found.name;
+  }
+
+  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(chName)}&background=e50914&color=ffffff&size=120&bold=true&rounded=true`;
+
+  return [
+    {
+      id: "kJQP7kiw5Fk",
+      title: `Amazing Experiments & Stunts! - ${chName} Special`,
+      description: `Welcome to this special session. We explore amazing concepts and updates from ${chName}.`,
+      thumbnailUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/maxresdefault.jpg",
+      channelId: channelId,
+      channelName: chName,
+      channelAvatarUrl: avatar,
+      viewCount: 1250000,
+      publishedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+      duration: 1320,
+      isLive: false,
+    },
+    {
+      id: "2Vv-BfVoq4g",
+      title: `Surviving the Hardest Challenge Ever! - ${chName}`,
+      description: `This was the ultimate test of endurance. Special thanks to all ${chName} supporters.`,
+      thumbnailUrl: "https://i.ytimg.com/vi/2Vv-BfVoq4g/maxresdefault.jpg",
+      channelId: channelId,
+      channelName: chName,
+      channelAvatarUrl: avatar,
+      viewCount: 89000000,
+      publishedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+      duration: 1040,
+      isLive: false,
+    },
+    {
+      id: "dQw4w9WgXcQ",
+      title: `Official Music Video Release | ${chName}`,
+      description: `The official music video from ${chName}. Watch, share, and enjoy!`,
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+      channelId: channelId,
+      channelName: chName,
+      channelAvatarUrl: avatar,
+      viewCount: 1450000000,
+      publishedAt: new Date(Date.now() - 3600000 * 24 * 365).toISOString(),
+      duration: 212,
+      isLive: false,
+    },
+  ];
 }
 
 function getMockVideoByIdFallback(videoId: string): YouTubeVideo {
@@ -472,14 +590,67 @@ function getMockVideoByIdFallback(videoId: string): YouTubeVideo {
 
   return {
     id: videoId,
-    title: "G.O.A.T - All PW JEE Batches @ 3***/- 🔥",
+    title: "Amazing Experiments & Science Concepts",
     description: "Welcome to this specialized deep-dive session. We discuss core mechanics and problem solving.",
     thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
     channelId: "UC8gtmd2pB3GjCqLg7GDFt1A",
     channelName: "JEE Wallah",
+    channelAvatarUrl: "https://yt3.ggpht.com/i1rWscD0-D6dYyU-k2Z8VzWzO_b5G7Y6D4N-lB2N5P1S=s240-c-k-c0x00ffffff-no-rj",
     viewCount: 350000,
     publishedAt: new Date().toISOString(),
     duration: 3600,
     isLive: false,
   };
+}
+
+function getMockVideoSearchFallback(query: string): YouTubeVideo[] {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) return MOCK_VIDEOS;
+
+  const capitalizedQuery = cleanQuery
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+  return [
+    {
+      id: "kJQP7kiw5Fk",
+      title: `${capitalizedQuery} - Special Premiere`,
+      description: `Exclusive content covering ${capitalizedQuery}. Watch the full episode now!`,
+      thumbnailUrl: "https://i.ytimg.com/vi/kJQP7kiw5Fk/maxresdefault.jpg",
+      channelId: "UC8gtmd2pB3GjCqLg7GDFt1A",
+      channelName: "JEE Wallah",
+      channelAvatarUrl: "https://yt3.ggpht.com/i1rWscD0-D6dYyU-k2Z8VzWzO_b5G7Y6D4N-lB2N5P1S=s240-c-k-c0x00ffffff-no-rj",
+      viewCount: 450000,
+      publishedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+      duration: 1200,
+      isLive: false,
+    },
+    {
+      id: "2Vv-BfVoq4g",
+      title: `${capitalizedQuery} - Live Experiments`,
+      description: `Live discussion and experiments on ${capitalizedQuery}.`,
+      thumbnailUrl: "https://i.ytimg.com/vi/2Vv-BfVoq4g/maxresdefault.jpg",
+      channelId: "UCX6OQ3DkcsbYNE6H8uQQuVA",
+      channelName: "MrBeast",
+      channelAvatarUrl: "https://yt3.ggpht.com/ytc/AL5GRJX-s240-c-k-c0x00ffffff-no-rj",
+      viewCount: 89000000,
+      publishedAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+      duration: 1040,
+      isLive: false,
+    },
+    {
+      id: "dQw4w9WgXcQ",
+      title: `${capitalizedQuery} - Official Release`,
+      description: `Enjoy the official video for ${capitalizedQuery}.`,
+      thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+      channelId: "UCq-Fj5jknLsUf-MWSy4_brA",
+      channelName: "T-Series",
+      channelAvatarUrl: "https://yt3.ggpht.com/v_4wsb7V=s240-c-k-c0x00ffffff-no-rj",
+      viewCount: 12000000,
+      publishedAt: new Date(Date.now() - 3600000 * 24 * 5).toISOString(),
+      duration: 212,
+      isLive: false,
+    },
+  ];
 }
